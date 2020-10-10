@@ -2,7 +2,7 @@ use std::io;
 use std::cmp::Ordering;
 use rand::Rng;
 
-mod collections;
+mod iterate;
 
 fn main() {
     basics();
@@ -178,4 +178,14 @@ fn nullables() {
     let _some_string = Some("a string");
 
     let _absent_number: Option<i32> = None;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test1() {
+        assert_eq!(2, 1 + 1);
+    }
 }
