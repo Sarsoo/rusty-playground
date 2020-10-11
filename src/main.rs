@@ -3,6 +3,7 @@ use std::cmp::Ordering;
 use rand::Rng;
 
 mod iterate;
+mod macros;
 
 fn main() {
     basics();
@@ -17,6 +18,9 @@ fn main() {
 }
 
 fn basics() { 
+
+    println!("min: {}", find_min!(5, 6));
+
     // ! indicates a macro not a func
     println!("Enter a number: ");
 
