@@ -1,5 +1,5 @@
 [package]
-name = "rusty-playground"
+name = "rustyplayground"
 version = "0.1.0"
 authors = ["aj <andrewjpack@gmail.com>"]
 edition = "2018"

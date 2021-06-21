@@ -12,7 +12,8 @@ mod iterate {
 
     impl Iterator for Counter {
         type Item = u32;
-    
+        
+        /// Get next item from the iterator
         fn next(&mut self) -> Option<Self::Item> {
             if self.count < 5 {
                 self.count += 1;

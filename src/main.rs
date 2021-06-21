@@ -1,20 +1,32 @@
-use std::io;
 use std::cmp::Ordering;
+use std::fs::File;
+use std::io::{self, Read, ErrorKind};
 use rand::Rng;
+// use rustyplayground;
 
 mod iterate;
 mod macros;
+mod structs;
+mod collections;
+mod threads;
 
 fn main() {
-    basics();
-    compare();
-    loops();
-    vars();
-    compound();
+    // rustyplayground::print_hello();
+    // basics();
+    // compare();
+    // loops();
+    // vars();
+    // collections::compound();
+    // collections::vectors();
+    collections::hash();
+    threads::start_threads();
+    threads::thread_channel();
 
-    println!("testing returns: {}", returning(2));
-    strings();
-    nullables();
+    // println!("testing returns: {}", returning(2));
+    // strings();
+    // nullables();
+
+    nested_error_matching();
 }
 
 fn basics() { 
@@ -47,9 +59,9 @@ fn basics() {
     let r_num = rand::thread_rng().gen_range(1, 101);
     println!("random number: {}", r_num);
 
-    let vec = build_vector3(1, 2, 3);
+    let vec = structs::build_vector3(1, 2, 3);
     println!("Vector: {}/{}/{}", vec.x, vec.y, vec.z);
-    let vec2 = update_x(vec);
+    let vec2 = structs::update_x(vec);
     println!("Vector2: {:#?}", vec2)
 }
 
@@ -110,16 +122,6 @@ fn vars() {
     let _f = 2.0; // defaults to 64 bit
 }
 
-fn compound() {
-    let tup = (500, 'a');
-    let (_, second) = tup;
-    println!("tuple: {}/{}", tup.0, second);
-
-    let _arr: [u8; 4] = [1, 2, 3, 4];
-    let repeater = [3; 5]; // stretches to 5 elements of 3
-    println!("Retrieving from array: {}", repeater[3]);
-}
-
 fn returning(input: i32) -> i32 {
     let _stuff = 0;
 
@@ -132,49 +134,26 @@ fn returning(input: i32) -> i32 {
 
 fn strings() {
     let mut s = String::from("hello");
+    let s2 = "world!".to_string();
+    let s3 = String::from("hello");
+
+    // cannot [] index strings due to utf-8 encoding
+
     s.push_str(", world!");
-    println!("Sliced: {}", &s[4..8]);
-}
+    println!("Sliced: {}", &s[4..8]); // slice
+    println!("Appended: {}", s3 + " 2"); // takes ownership of s3
+    println!("{}", 
+        format!("{} {}", s, s2)
+    ); 
 
-#[derive(Debug)]
-struct Vector3 {
-    x: i32,
-    y: i32,
-    z: i32,
-}
-
-impl Vector3 {
-    fn dot(&self, other: &Vector3) -> i32 {
-        self.x * other.x
-        +
-        self.y * other.y
-        +
-        self.z * other.z
+    let s4 = "abcd".to_string();
+    for i in s4.chars() {
+        println!("{}", i);
     }
-}
 
-fn build_vector3(x: i32, y: i32, z: i32) -> Vector3 {
-    Vector3 {
-        x, y, z
+    for i in s4.bytes() {
+        println!("{}", i);
     }
-}
-
-fn update_x(vec: Vector3) -> Vector3 {
-    Vector3 {
-        x: 5,
-        ..vec
-    }
-}
-
-enum ColourChannel {
-    Red,
-    Green,
-    Blue
-}
-
-enum IpAddr {
-    V4(u8, u8, u8, u8),
-    V6(String),
 }
 
 fn nullables() {
@@ -184,12 +163,93 @@ fn nullables() {
     let _absent_number: Option<i32> = None;
 }
 
+fn nested_error_matching() {
+    let f = File::open("hello.txt");
+
+    // .unwrap() get inner value or panic
+    // .expect() as above but with custom error message
+
+    let f = match f {
+        Ok(file) => file,
+        Err(error) => match error.kind() {
+            ErrorKind::NotFound => match File::create("hello.txt") {
+                Ok(fc) => fc,
+                Err(e) => panic!("Problem creating the file: {:?}", e),
+            },
+            other_error => {
+                panic!("Problem opening the file: {:?}", other_error)
+            }
+        },
+    };
+
+    let f = File::open("hello.txt").unwrap_or_else(|error| {
+        if error.kind() == ErrorKind::NotFound {
+            File::create("hello.txt").unwrap_or_else(|error| {
+                panic!("Problem creating the file: {:?}", error);
+            })
+        } else {
+            panic!("Problem opening the file: {:?}", error);
+        }
+    });
+}
+
+fn propagate_err() -> Result<String, io::Error> {
+    let f = File::open("hello.txt");
+
+    let mut f = match f {
+        Ok(file) => file,
+        Err(e) => return Err(e),
+    };
+
+    let mut s = String::new();
+
+    match f.read_to_string(&mut s) {
+        Ok(_) => Ok(s),
+        Err(e) => Err(e),
+    }
+}
+
+fn propagate_err_operator() -> Result<String, io::Error> {
+    let mut f = File::open("hello.txt")?;
+    let mut s = String::new();
+    f.read_to_string(&mut s)?; // continue if ok, return error if not, convert to return type if required
+    Ok(s)
+}
+
+fn propagate_err_operator_shorter() -> Result<String, io::Error> {
+    
+    // can also be done with fs::read_to_string()
+
+    let mut s = String::new();
+    File::open("hello.txt")?.read_to_string(&mut s)?; // continue if ok, return error if not, convert to return type if required
+    Ok(s)
+}
+
+
 #[cfg(test)]
+// #[warn(unused_imports)]
 mod tests {
     use super::*;
 
     #[test]
     fn test1() {
         assert_eq!(2, 1 + 1);
+    }
+
+    #[ignore]
+    #[test]
+    #[should_panic(expected = "index out of bounds")] // check that panic message is substring of actual
+    fn test_panic() {
+        let arr = vec![1, 2, 3];
+        arr[4];
+    }
+
+    #[test]
+    fn test_result() -> Result<(), String> {
+        if 2 + 2 == 4 {
+            Ok(())
+        } else {
+            Err("Error".to_string())
+        }
     }
 }

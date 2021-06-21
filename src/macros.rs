@@ -7,6 +7,20 @@ macro_rules! log {
 }
 
 #[macro_export]
+macro_rules! simple_vec {
+    // comma is literal, comma indicates zero or more
+    ( $( $x:expr ),* ) => {
+        {
+            let mut temp_vec = Vec::new();
+            $(
+                temp_vec.push($x);
+            )*
+            temp_vec
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! expr_stringer {
     // This macro takes an expression of type `expr` and prints
     // it as a string along with its result.
